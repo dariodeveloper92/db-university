@@ -1,0 +1,17 @@
+/* common */
+#container {
+    width: 100%;
+    height: 100%;
+}
+
+.containerFirst {
+    width: 100%;
+    height: 100%;
+    background-color: lightblue;
+}
+
+.containerSecond {
+    width: 100%;
+    height: 100%;
+    background-color: lightgreen;
+}
