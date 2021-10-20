@@ -17,23 +17,19 @@ WHERE `departments`.`name` = 'Dipartimento di Neuroscienze'
 
 3. Selezionare tutti  i corsi in cui insegna Fulvio Amato(id=44)
 
-SELECT `courses`.`degree_id` AS `Corsi Fulvio Amato`, `courses`.`name`, `teachers`.`id`, `teachers`.`name`, `teachers`.`surname` 
+SELECT `courses`.`id`, `courses`.`name`, `teachers`.`name`, `teachers`.`surname`
 FROM `courses`
-INNER JOIN `teachers` ON `courses`.`id` = `teachers`.`id`
+JOIN `course_teacher` ON `courses`.`id` = `course_teacher`.`course_id`
+JOIN `teachers` ON `course_teacher`.`teacher_id` = `teachers`.`id`
 WHERE `teachers`.`id` = 44
-	oppure
-SELECT `courses`.`degree_id` AS `Corsi Fulvio Amato`, `courses`.`name`, `teachers`.`id`, `teachers`.`name`, `teachers`.`surname` 
-FROM `courses`
-INNER JOIN `teachers` ON `courses`.`id` = `teachers`.`id`
-WHERE `teachers`.`name` = 'Fulvio'
-AND`teachers`.`surname` = 'Amato'
 
 4. Selezionare tutti gli studenti con i dati realativi al corso di laurea a cui sono iscritti e il relativo dipartimento, in ordine alfabetico per cognome e nome.
 
-SELECT `departments`.`name`, `degrees`.`name`, `students`.`name`, `students`.`surname`, `students`.`degree_id`
-FROM `degrees`
-JOIN `departments` ON `departments`.`id` = `degrees`.`department_id`
-JOIN `students` ON `degrees`.`id` = `students`.`degree_id` 
+SELECT `students`.`surname`, `students`.`name`, `degrees`.`name`, `departments`.`name`
+FROM `departments`
+JOIN `degrees` ON `departments`.`id` = `degrees`.`department_id`
+JOIN `students` ON `degrees`.`id` = `students`.`degree_id`
+ORDER BY `students`.`surname`, `students`.`name` ASC
 
 5. Selezionare tutti i corsi di laurea con i relativi corsi e insegnanti.
 
@@ -44,22 +40,52 @@ JOIN `teachers` ON `teachers`.`id` = `courses`.`id`
 
 6. Selezionare tutti  i docenti che insegnano nel Dipartimento di Matematica (54)
 
-SELECT `departments`.`name` AS `Dipartimento` , `teachers`.`name`, `teachers`.`surname`, `courses`.`degree_id`, `degrees`.`department_id`
-FROM `courses`
-JOIN `teachers` ON `teachers`.`id` = `courses`.`id`
-JOIN `degrees` ON `degrees`.`id` = `courses`.`degree_id`
-JOIN `departments` ON `departments`.`id` = `degrees`.`department_id`
-WhERE `departments`.`name` = 'Dipartimento di Matematica'
+SELECT `departments`.`name`, `teachers`.`name`, `teachers`.`surname`
+FROM `departments`
+JOIN `degrees` ON `departments`.`id` = `degrees`.`department_id`
+JOIN `courses` ON `degrees`.`id` = `courses`.`degree_id`
+JOIN `course_teacher` ON `courses`.`id` = `course_teacher`.`course_id`
+JOIN `teachers` ON `course_teacher`.`teacher_id` = `teachers`.`id`
+WHERE `departments`.`name` = 'Dipartimento di Matematica'
+GROUP BY `teachers`.`id`
+	oppure
+SELECT DISTINCT `departments`.`name`, `teachers`.`name`, `teachers`.`surname`
+FROM `departments`
+JOIN `degrees` ON `departments`.`id` = `degrees`.`department_id`
+JOIN `courses` ON `degrees`.`id` = `courses`.`degree_id`
+JOIN `course_teacher` ON `courses`.`id` = `course_teacher`.`course_id`
+JOIN `teachers` ON `course_teacher`.`teacher_id` = `teachers`.`id`
+WHERE `departments`.`name` = 'Dipartimento di Matematica'
 
 7. Bonus: Selezionare per ogni studente quanti tentativi d'esame ha sostenuto per superare ciascunob dei suoi esami.
+
+SELECT `students`.`id` AS 'id_studente', `students`.`name`, `students`.`surname`, COUNT(`courses`.`name`) AS 'n_tentativi', `courses`.`name` AS 'nome_corso', `courses`.`id` AS 'id_corso', MAX(`exam_student`.`vote`) AS 'voto_max'  
+FROM `courses`
+JOIN `exams` ON `courses`.`id` = `exams`.`course_id`
+JOIN `exam_student` ON `exams`.`id` = `exam_student`.`exam_id`
+JOIN `students` ON `exam_student`.`student_id` = `students`.`id`
+GROUP BY `courses`.`id`, `courses`.`name`, `students`.`id`
+HAVING MAX(`exam_student`.`vote`) >= 18
+ORDER BY `id_studente` ASC
+
+
+8. Selezionare il libretto universitario di Mirco Messina (matricola n. 620320).
+
+SELECT `students`.`name` AS `name`, `students`.`surname` AS `surname`, `courses`.`name` AS `exam`, `exam_student`.`vote` AS `vote`
+FROM `students`
+JOIN `exam_student` ON `students`.`id` = `exam_student`.`student_id`
+JOIN `exams` ON `exams`.`id` = `exam_student`.`exam_id`
+JOIN `courses` ON `courses`.`id` = `exams`.`course_id`
+WHERE `students`.`registration_number` = 620320
+
 	
 /* ------------------------------------------------------------------------------- */
 Ex-Query con GROUP BY:
 1. Contare qunati iscritti ci sono stati ogni anno
 
-SELECT COUNT(id) AS `numero_iscritti`, `enrolment_date`
+SELECT COUNT(students.id) AS `numero_iscritti`, YEAR(students.`enrolment_date`) AS `anno_immatricolazione`
 FROM `students`
-GROUP BY `enrolment_date`
+GROUP BY `anno_immatricolazione`
 
 2. Contare gli insegnanti che hanno l'ufficio nello stesso edificio
 
@@ -69,13 +95,9 @@ GROUP BY `office_address`
 
 3. Calcolare la media dei voti di ogni appello d'esame
 
-SELECT AVG(`exam_student`.`vote`) AS `media_voto`, `courses`.`name` AS `materia_corso`, `degrees`.`name` AS `Corso_di_Laurea`
+SELECT AVG(`vote`), exam_id
 FROM `exam_student`
-JOIN `exams` ON `exam_student`.`exam_id` = `exams`.`id`
-JOIN `courses` ON `exams`.`course_id` = `courses`.`id`
-JOIN `degrees` ON `courses`.`degree_id` = `degrees`.`id`
-GROUP BY `courses`.`id`
-ORDER BY `media_voto` DESC
+GROUP BY `exam_id`
 
 4. Contare quanti corsi di laurea ci sono per ogni dipartimento	
 
